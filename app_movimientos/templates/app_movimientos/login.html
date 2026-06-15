@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesion - LogiCo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'app_movimientos/css/style.css' %}">
+</head>
+<body>
+    <main class="login-page">
+        <section class="login-card logico-card">
+            <div class="card-body p-4 p-md-5">
+                <div class="login-brand mb-4">
+                    <i class="fa-solid fa-truck-fast"></i>
+                    <span>LogiCo</span>
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            Usuario o contrasena incorrectos.
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label fw-bold">Usuario</label>
+                        <input type="text" name="{{ form.username.name }}" id="{{ form.username.id_for_label }}" class="form-control" required autofocus>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.password.id_for_label }}" class="form-label fw-bold">Contrasena</label>
+                        <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" class="form-control" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-logico w-100">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i> Iniciar sesion
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

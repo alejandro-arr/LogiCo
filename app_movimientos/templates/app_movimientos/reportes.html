@@ -1,0 +1,116 @@
+{% extends 'app_movimientos/base.html' %}
+
+{% block page_title %}Reportes de pedidos validados{% endblock %}
+
+{% block content %}
+<div class="logico-card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label for="periodo" class="form-label fw-bold">Tipo de reporte</label>
+                <select name="periodo" id="periodo" class="form-control">
+                    <option value="diario" {% if periodo == 'diario' %}selected{% endif %}>Diario</option>
+                    <option value="mensual" {% if periodo == 'mensual' %}selected{% endif %}>Mensual</option>
+                    <option value="anual" {% if periodo == 'anual' %}selected{% endif %}>Anual</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <label for="fecha" class="form-label fw-bold">Fecha de referencia</label>
+                <input type="date" name="fecha" id="fecha" value="{{ fecha_referencia }}" class="form-control">
+            </div>
+            <div class="col-12 col-md-4">
+                <button type="submit" class="btn btn-logico w-100">
+                    <i class="fa-solid fa-magnifying-glass me-2"></i>Generar reporte
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="fw-bold mb-1">Reporte {{ periodo }}: {{ periodo_titulo }}</h5>
+        <p class="text-muted mb-0">
+            Pedidos entregados y validados entre {{ fecha_inicio|date:"d/m/Y" }} y {{ fecha_fin|date:"d/m/Y" }}.
+        </p>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="logico-card h-100">
+            <div class="card-body stat-card">
+                <div class="stat-icon primary"><i class="fa-solid fa-box-check"></i></div>
+                <div class="stat-info">
+                    <h3>{{ total_pedidos }}</h3>
+                    <p>Pedidos validados</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="logico-card h-100">
+            <div class="card-body stat-card">
+                <div class="stat-icon secondary"><i class="fa-solid fa-house-medical"></i></div>
+                <div class="stat-info">
+                    <h3>{{ total_farmacias }}</h3>
+                    <p>Farmacias atendidas</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="logico-card h-100">
+            <div class="card-body stat-card">
+                <div class="stat-icon secondary"><i class="fa-solid fa-id-card"></i></div>
+                <div class="stat-info">
+                    <h3>{{ total_motoristas }}</h3>
+                    <p>Motoristas participantes</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="logico-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-logico table-hover">
+                <thead>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Fecha</th>
+                        <th>Farmacia</th>
+                        <th>Región</th>
+                        <th>Motorista</th>
+                        <th>Destino</th>
+                        <th>Validado por</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr>
+                        <td><span class="fw-bold">#{{ pedido.id }}</span></td>
+                        <td>{{ pedido.fecha_hora|date:"d/m/Y H:i" }}</td>
+                        <td>{{ pedido.farmacia_origen.nombre_local }}</td>
+                        <td>{{ pedido.farmacia_origen.get_region_display }}</td>
+                        <td>{{ pedido.motorista.nombre_completo|default:"Sin motorista registrado" }}</td>
+                        <td>{{ pedido.direccion_destino }}</td>
+                        <td>
+                            {{ pedido.validado_por.username|default:"Migración inicial" }}
+                            <br><small class="text-muted">{{ pedido.fecha_validacion|date:"d/m/Y H:i" }}</small>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            No hay pedidos entregados y validados para este período.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

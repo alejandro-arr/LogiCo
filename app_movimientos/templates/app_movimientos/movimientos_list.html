@@ -1,0 +1,158 @@
+{% extends 'app_movimientos/base.html' %}
+
+{% block page_title %}Registro de Movimientos{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <p class="text-muted mb-3">Administra los despachos y movimientos logísticos registrados en el sistema.</p>
+    <div class="logico-card">
+        <div class="card-header">Operaciones de movimientos</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <a href="{% url 'movimiento_directo_create' %}" class="btn btn-logico w-100 h-100">
+                        <i class="fa-solid fa-location-arrow me-2"></i>Agregar movimiento directo
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <a href="{% url 'movimiento_receta_create' %}" class="btn btn-logico w-100 h-100">
+                        <i class="fa-solid fa-file-prescription me-2"></i>Agregar movimiento con receta
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <a href="{% url 'movimiento_traslado_create' %}" class="btn btn-logico w-100 h-100">
+                        <i class="fa-solid fa-right-left me-2"></i>Agregar movimiento con traslado
+                    </a>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <a href="{% url 'movimiento_reenvio_create' %}" class="btn btn-logico w-100 h-100">
+                        <i class="fa-solid fa-rotate me-2"></i>Agregar movimiento con reenvío
+                    </a>
+                </div>
+            </div>
+            <p class="text-muted small mb-0 mt-3">
+                Para modificar o anular un movimiento, utiliza las acciones de su fila en la tabla.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="logico-card">
+    <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+        <form method="get" class="d-flex gap-2" style="max-width: 620px;">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                </span>
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ busqueda }}"
+                    class="form-control bg-light border-start-0 ps-0"
+                    placeholder="Código, dirección, farmacia, motorista u observación"
+                >
+            </div>
+            <button type="submit" class="btn btn-logico">
+                <i class="fa-solid fa-filter me-1"></i>Buscar
+            </button>
+            {% if busqueda %}
+            <a href="{% url 'movimientos_list' %}" class="btn btn-light border" title="Limpiar búsqueda">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+    
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-logico table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Fecha/Hora</th>
+                        <th>Destino</th>
+                        <th>Tipo Movimiento</th>
+                        <th>Ruta del movimiento</th>
+                        <th>Motorista</th>
+                        <th>Observaciones</th>
+                        <th>Estado</th>
+                        <th>Validación</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mov in movimientos %}
+                    <tr>
+                        <td><span class="fw-bold text-dark">{{ mov.codigo }}</span></td>
+                        <td>{{ mov.fecha_hora|date:"d M, H:i" }}</td>
+                        <td>{{ mov.direccion_destino }}</td>
+                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill px-3">{{ mov.get_tipo_movimiento_display }}</span></td>
+                        <td>
+                            <span class="fw-bold">{{ mov.farmacia_origen.nombre_local }}</span>
+                            {% if mov.tipo_movimiento == 'TRASLADO' and mov.farmacia_destino %}
+                                <br>
+                                <i class="fa-solid fa-arrow-down text-muted my-1"></i>
+                                <br>
+                                <span class="fw-bold">{{ mov.farmacia_destino.nombre_local }}</span>
+                            {% else %}
+                                <br><small class="text-muted">{{ mov.farmacia_origen.comuna|default:mov.farmacia_origen.get_region_display }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ mov.motorista.nombre_completo|default:"Sin motorista registrado" }}
+                            {% if mov.motorista %}
+                                <br><small class="text-muted">{{ mov.motorista.rut }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ mov.observaciones|default:"-"|truncatechars:60 }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if mov.estado == 'ENTREGADO' %}badge-success
+                                {% elif mov.estado == 'FALLIDO' or mov.estado == 'ANULADO' %}bg-danger text-white
+                                {% else %}badge-pending{% endif %} 
+                                rounded-pill px-3">
+                                {{ mov.get_estado_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if mov.estado == 'ANULADO' %}
+                                <span class="badge bg-danger text-white rounded-pill px-3">Anulado</span>
+                                <br>
+                                <small class="text-muted">{{ mov.fecha_anulacion|date:"d/m/Y H:i" }}</small>
+                            {% elif mov.validado %}
+                                <span class="badge badge-success rounded-pill px-3">Validado</span>
+                                <br>
+                                <small class="text-muted">{{ mov.fecha_validacion|date:"d/m/Y H:i" }}</small>
+                            {% else %}
+                                <span class="badge badge-pending rounded-pill px-3">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if mov.estado != 'ANULADO' %}
+                                <a href="{% url 'movimiento_update' pk=mov.id %}" class="btn btn-sm btn-light text-primary me-1">
+                                    <i class="fa-solid fa-pen me-1"></i>Modificar
+                                </a>
+                                <a href="{% url 'movimiento_anular' pk=mov.id %}" class="btn btn-sm btn-light text-danger">
+                                    <i class="fa-solid fa-ban me-1"></i>Anular
+                                </a>
+                            {% else %}
+                                <span class="text-muted small">Sin acciones</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-5">No hay movimientos registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <nav class="mt-4 d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Mostrando {{ movimientos.count }} registros en total</span>
+        </nav>
+    </div>
+</div>
+{% endblock %}

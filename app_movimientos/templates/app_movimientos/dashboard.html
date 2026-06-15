@@ -1,0 +1,130 @@
+{% extends 'app_movimientos/base.html' %}
+
+{% block page_title %}Panel principal{% endblock %}
+
+{% block content %}
+<div class="row mb-4 g-4">
+    <!-- Stat Card 1 -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="logico-card h-100">
+            <div class="card-body stat-card">
+                <div class="stat-icon primary">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_despachos }}</h3>
+                    <p>Despachos Totales</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stat Card 2 -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="logico-card h-100">
+            <div class="card-body stat-card">
+                <div class="stat-icon secondary">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ motoristas_activos }}</h3>
+                    <p>Motoristas Activos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stat Card 3 -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="logico-card h-100">
+            <div class="card-body stat-card">
+                <div class="stat-icon secondary">
+                    <i class="fa-solid fa-motorcycle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ motos_disponibles }}</h3>
+                    <p>Motos Disponibles</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stat Card 4 -->
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="logico-card h-100">
+            <div class="card-body stat-card">
+                <div class="stat-icon text-warning bg-warning bg-opacity-10">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ motos_mantencion }}</h3>
+                    <p>Motos en Mantención</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Activity Table -->
+    <div class="col-12 col-xl-8">
+        <div class="logico-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Últimos Despachos Registrados</span>
+                <a href="{% url 'movimientos_list' %}" class="btn btn-sm btn-logico-outline">Ver Todos</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-logico">
+                        <thead>
+                            <tr>
+                                <th>Farmacia Origen</th>
+                                <th>Motorista</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in ultimos_movimientos %}
+                            <tr>
+                                <td>{{ mov.farmacia_origen.nombre_local }}</td>
+                                <td>{{ mov.motorista.nombre_completo|default:"Sin motorista registrado" }}</td>
+                                <td><span class="badge badge-logico bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{ mov.get_tipo_movimiento_display }}</span></td>
+                                <td>
+                                    <span class="badge badge-logico 
+                                        {% if mov.estado == 'ENTREGADO' %}badge-success
+                                        {% elif mov.estado == 'FALLIDO' %}bg-danger text-white
+                                        {% else %}badge-pending{% endif %}">
+                                        {{ mov.get_estado_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Aún no hay despachos registrados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Panel (Info/Graph Placeholder) -->
+    <div class="col-12 col-xl-4">
+        <div class="logico-card h-100">
+            <div class="card-header">
+                Eficiencia Histórica
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
+                <div class="position-relative" style="width: 150px; height: 150px; border-radius: 50%; border: 15px solid var(--logico-gray-light); border-top-color: var(--logico-red); display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">
+                    <h2 class="m-0 fw-bold" style="color: var(--logico-red);">{{ eficiencia }}%</h2>
+                </div>
+                <h5 class="fw-bold">Entregas Exitosas</h5>
+                <p class="text-muted small">El porcentaje refleja los despachos con estado "Entregado" sobre el total de despachos registrados.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

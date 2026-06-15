@@ -1,0 +1,293 @@
+:root {
+    --logico-red: #d32f2f;
+    --logico-red-light: #ff6659;
+    --logico-red-dark: #9a0007;
+    --logico-gray-dark: #2c3e50;
+    --logico-gray: #7f8c8d;
+    --logico-gray-light: #f4f6f9;
+    --logico-white: #ffffff;
+    --logico-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --logico-shadow-hover: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--logico-gray-light);
+    color: var(--logico-gray-dark);
+}
+
+/* Sidebar Styles */
+.sidebar {
+    min-height: 100vh;
+    background-color: var(--logico-white);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+    z-index: 100;
+}
+
+.sidebar .brand {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--logico-red);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 1.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--logico-gray-light);
+}
+
+.sidebar-nav .nav-link {
+    color: var(--logico-gray);
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    border-radius: 0;
+    border-left: 4px solid transparent;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-nav .nav-link:hover, .sidebar-nav .nav-link.active {
+    color: var(--logico-red);
+    background-color: rgba(211, 47, 47, 0.05);
+    border-left: 4px solid var(--logico-red);
+}
+
+/* Topbar Styles */
+.topbar {
+    background-color: var(--logico-white);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+}
+
+.topbar .user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.user-profile img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--logico-red);
+}
+
+/* Main Content Area */
+.main-content {
+    padding: 2rem;
+}
+
+/* Cards */
+.logico-card {
+    background: var(--logico-white);
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--logico-shadow);
+    transition: var(--transition);
+}
+
+.logico-card:hover {
+    box-shadow: var(--logico-shadow-hover);
+    transform: translateY(-3px);
+}
+
+.logico-card .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid var(--logico-gray-light);
+    padding: 1.5rem;
+    font-weight: 700;
+    color: var(--logico-gray-dark);
+}
+
+.logico-card .card-body {
+    padding: 1.5rem;
+}
+
+/* Stat Cards specific */
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+}
+
+.stat-icon.primary {
+    background-color: rgba(211, 47, 47, 0.1);
+    color: var(--logico-red);
+}
+
+.stat-icon.secondary {
+    background-color: rgba(44, 62, 80, 0.1);
+    color: var(--logico-gray-dark);
+}
+
+.stat-info h3 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--logico-gray-dark);
+}
+
+.stat-info p {
+    margin: 0;
+    color: var(--logico-gray);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Tables */
+.table-logico {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.table-logico thead th {
+    background-color: var(--logico-gray-light);
+    color: var(--logico-gray);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    border: none;
+}
+
+.table-logico tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--logico-gray-light);
+    color: var(--logico-gray-dark);
+    font-weight: 500;
+}
+
+.table-logico tbody tr {
+    transition: var(--transition);
+}
+
+.table-logico tbody tr:hover {
+    background-color: rgba(0,0,0,0.01);
+}
+
+/* Badges */
+.badge-logico {
+    padding: 0.5em 1em;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.badge-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-active {
+    background-color: rgba(211, 47, 47, 0.1);
+    color: var(--logico-red);
+}
+
+/* Buttons */
+.btn-logico {
+    background-color: var(--logico-red);
+    color: var(--logico-white);
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-logico:hover {
+    background-color: var(--logico-red-dark);
+    color: var(--logico-white);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
+}
+
+.btn-logico-outline {
+    background-color: transparent;
+    color: var(--logico-red);
+    border: 2px solid var(--logico-red);
+    border-radius: 8px;
+    padding: 0.5rem 1.1rem;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-logico-outline:hover {
+    background-color: var(--logico-red);
+    color: var(--logico-white);
+}
+
+.btn-icon {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+}
+
+/* Login */
+.login-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f4f6f9 0%, #ffffff 55%, #fdecec 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+}
+
+.login-brand {
+    color: var(--logico-red);
+    font-size: 2rem;
+    font-weight: 800;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+
+/* FIX LAYOUT */
+.col {
+    justify-content: flex-start !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+.topbar {
+    margin-top: 0 !important;
+}
+.main-content {
+    margin-top: 0 !important;
+}
