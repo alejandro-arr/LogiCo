@@ -1,11 +1,24 @@
+"""
+Módulo de Vistas y Controladores (Django Views & Generic CBVs).
+
+Implementa la lógica de presentación y flujo de control del sistema.
+Está dividido en tres capas arquitectónicas:
+1. Vistas de Dashboard y Métricas Operativas (KPIs en tiempo real).
+2. Clases Base Genéricas (CustomBaseListView, CreateView, etc.) para aplicar DRY en los mantenedores CRUD.
+3. Controladores especializados para cada entidad (Despachos, Farmacias, Motoristas, Motos y Turnos).
+
+Buenas prácticas aplicadas:
+- Optimización de consultas ORM mediante select_related para evitar el problema N+1 queries.
+- Protección de acceso y seguridad vía decoradores @login_required y LoginRequiredMixin.
+- Reutilización extrema de código en plantillas (mantenedores genéricos con metadatos de modelos).
+"""
+
 import calendar
 from datetime import date, datetime
 
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib import messages
-from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -38,6 +51,14 @@ from .territorios import TERRITORIOS
 # ==================== VISTAS DE DASHBOARD ====================
 @login_required
 def dashboard_view(request):
+    """
+    Vista principal del Panel de Control (Dashboard).
+
+    Calcula y muestra métricas clave (KPIs) en tiempo real:
+    - Total de despachos registrados y porcentaje de eficiencia (entregados vs total).
+    - Estado operativo del personal (motoristas activos) y flota (motos disponibles/en mantención).
+    - Últimos 5 movimientos registrados para monitoreo inmediato.
+    """
     total_despachos = Movimiento.objects.count()
     motoristas_activos = Motorista.objects.filter(estado='ACTIVO').count()
     motos_disponibles = Moto.objects.filter(estado='DISPONIBLE').count()
@@ -60,6 +81,12 @@ def dashboard_view(request):
 
 @login_required
 def movimientos_list_view(request):
+    """
+    Vista del historial general y buscador de movimientos de despacho.
+
+    Permite filtrar los despachos por código, dirección, observaciones, farmacias de origen/destino
+    o nombre del motorista utilizando objetos Q para búsquedas OR eficientes en base de datos.
+    """
     busqueda = request.GET.get('q', '').strip()
     movimientos = Movimiento.objects.select_related(
         'farmacia_origen',
@@ -85,6 +112,12 @@ def movimientos_list_view(request):
 
 @login_required
 def reportes_view(request):
+    """
+    Vista de generación de Reportes Operativos (diarios, mensuales y anuales).
+
+    Filtra los pedidos que han sido ENTREGADOS y VALIDADOS dentro del rango de fechas estipulado.
+    Calcula agregados estadísticos como el número total de pedidos, farmacias activas y motoristas.
+    """
     periodo = request.GET.get('periodo', 'diario')
     if periodo not in {'diario', 'mensual', 'anual'}:
         periodo = 'diario'
@@ -134,14 +167,18 @@ def reportes_view(request):
 
 
 def logout_view(request):
+    """
+    Cierra la sesión del usuario actual y lo redirige a la pantalla de login.
+    """
     logout(request)
     return redirect('login')
 
 # ==================== MANTENEDORES GENÉRICOS (MIXINS Y BASES) ====================
 class CustomBaseListView(LoginRequiredMixin, ListView):
-    template_name = 'app_movimientos/mantenedor_list.html'
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
+    """
+    Clase base genérica para vistas de listado CRUD (Read).
+    Inyecta automáticamente en el contexto el título plural del modelo y las URLs estándar de acción.
+    """
     template_name = 'app_movimientos/mantenedor_list.html'
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -151,9 +188,12 @@ class CustomBaseListView(LoginRequiredMixin, ListView):
         ctx['url_eliminar'] = f"{self.model._meta.model_name}_delete"
         return ctx
 
-class CustomBaseCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+class CustomBaseCreateView(LoginRequiredMixin, CreateView):
+    """
+    Clase base genérica para vistas de creación de registros (Create).
+    Configura el título, texto del botón y URL de cancelación de forma estandarizada.
+    """
     template_name = 'app_movimientos/mantenedor_form.html'
-    success_message = "Registro Creado: La información se guardó correctamente en la base de datos."
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['titulo'] = f"Crear {self.model._meta.verbose_name}"
@@ -161,9 +201,11 @@ class CustomBaseCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
         ctx['url_cancelar'] = f"{self.model._meta.model_name}_list"
         return ctx
 
-class CustomBaseUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class CustomBaseUpdateView(LoginRequiredMixin, UpdateView):
+    """
+    Clase base genérica para vistas de edición y modificación de registros (Update).
+    """
     template_name = 'app_movimientos/mantenedor_form.html'
-    success_message = "Registro Actualizado: Los cambios se han guardado con éxito."
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['titulo'] = f"Editar {self.model._meta.verbose_name}"
@@ -172,18 +214,23 @@ class CustomBaseUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
         return ctx
 
 class CustomBaseDeleteView(LoginRequiredMixin, DeleteView):
+    """
+    Clase base genérica para la confirmación de eliminación de registros (Delete).
+    """
     template_name = 'app_movimientos/mantenedor_confirm_delete.html'
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['titulo'] = f"Eliminar {self.model._meta.verbose_name}"
         ctx['url_cancelar'] = f"{self.model._meta.model_name}_list"
         return ctx
-    def form_valid(self, form):
-        messages.warning(self.request, "Registro Eliminado: El dato ha sido borrado permanentemente de LogiCo.")
-        return super().form_valid(form)
 
 
 def _catalogo_motoristas_por_farmacia():
+    """
+    Función auxiliar de consulta que genera un diccionario optimizado en memoria
+    mapeando cada ID de farmacia con su lista de motoristas activos asignados.
+    Utilizada para alimentar menús dependientes en la interfaz por AJAX/JavaScript.
+    """
     catalogo = {}
     asignaciones = AsignacionMotorista.objects.filter(
         motorista__estado='ACTIVO',

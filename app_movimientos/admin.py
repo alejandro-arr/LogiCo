@@ -1,5 +1,4 @@
 from django.contrib import admin
-
 from .models import (
     AsignacionMotorista,
     AsignacionTurno,
@@ -9,7 +8,6 @@ from .models import (
     Moto,
     Motorista,
     Movimiento,
-    Operadora,
     UsuarioSistema,
 )
 
@@ -23,4 +21,3 @@ admin.site.register(ModeloMoto)
 admin.site.register(AsignacionTurno)
 admin.site.register(AsignacionMotorista)
 admin.site.register(Movimiento)
-admin.site.register(Operadora)

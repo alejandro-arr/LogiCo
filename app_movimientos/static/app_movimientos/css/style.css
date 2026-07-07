@@ -64,7 +64,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    
 }
 
 .topbar .user-profile {
@@ -216,9 +215,16 @@ body {
     color: var(--logico-white);
     border: none;
     border-radius: 8px;
-    padding: 0.6rem 1.2rem;
+    padding: 0.55rem 1.1rem;
     font-weight: 600;
     transition: var(--transition);
+}
+
+.btn-logico.btn-sm, .btn-logico-sm {
+    padding: 0.35rem 0.85rem !important;
+    font-size: 0.85rem !important;
+    border-radius: 6px;
+    font-weight: 600;
 }
 
 .btn-logico:hover {
@@ -276,18 +282,4 @@ body {
     gap: 10px;
     justify-content: center;
     align-items: center;
-}
-
-
-/* FIX LAYOUT */
-.col {
-    justify-content: flex-start !important;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-.topbar {
-    margin-top: 0 !important;
-}
-.main-content {
-    margin-top: 0 !important;
 }

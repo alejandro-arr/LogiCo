@@ -127,8 +127,3 @@ STATIC_URL = 'static/'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
-
-# Session Expiration (Historia de Usuario)
-SESSION_COOKIE_AGE = 1800  # 30 minutos de inactividad (en segundos)
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Cierra sesión al cerrar el navegador
-SESSION_SAVE_EVERY_REQUEST = True  # Reinicia el contador de 30 mins con cada acción del usuario

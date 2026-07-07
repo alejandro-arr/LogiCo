@@ -1,13 +1,32 @@
+"""
+Módulo de Enrutamiento URL (Controlador Frontal de Django).
+
+Mapea las peticiones HTTP (rutas URL) a las vistas (views) correspondientes del sistema.
+Está organizado de forma modular y por recursos:
+1. Autenticación (Login / Logout).
+2. Panel de control (Dashboard principal).
+3. Flujo operativo de Despachos y Reportes de gestión.
+4. Mantenedores CRUD para catálogos y entidades de negocio (Farmacias, Motoristas, Motos, Usuarios y Asignaciones).
+
+Buenas prácticas aplicadas:
+- Nombres de ruta explícitos (name='...') para permitir la inversión de URL (reverse/url en templates), evadiendo URLs hardcodeadas.
+- Agrupación por prefijos semánticos para mayor legibilidad y mantenibilidad.
+"""
+
 from django.contrib.auth.views import LoginView
 from django.urls import path
 from . import views
 
 urlpatterns = [
+    # ==================== 1. AUTENTICACIÓN ====================
     path('login/', LoginView.as_view(template_name='app_movimientos/login.html', redirect_authenticated_user=True), name='login'),
     path('logout/', views.logout_view, name='logout'),
 
+    # ==================== 2. PANEL DE CONTROL (DASHBOARD) ====================
     path('', views.dashboard_view, name='home'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
+
+    # ==================== 3. FLUJO OPERATIVO DE DESPACHOS Y REPORTES ====================
     path('movimientos/', views.movimientos_list_view, name='movimientos_list'),
     path('movimientos/crear/', views.MovimientoCreateView.as_view(), name='movimiento_create'),
     path('movimientos/crear/directo/', views.MovimientoCreateView.as_view(tipo_movimiento='DIRECTO'), name='movimiento_directo_create'),
@@ -18,7 +37,8 @@ urlpatterns = [
     path('movimientos/anular/<int:pk>/', views.anular_movimiento_view, name='movimiento_anular'),
     path('reportes/', views.reportes_view, name='reportes'),
 
-    # Rutas Farmacia
+    # ==================== 4. MANTENEDORES CRUD (CATÁLOGOS Y ENTIDADES) ====================
+    # Rutas Farmacia: Gestión de locales y sucursales
     path('farmacias/', views.FarmaciaListView.as_view(), name='farmacia_list'),
     path('farmacias/crear/', views.FarmaciaCreateView.as_view(), name='farmacia_create'),
     path('farmacias/editar/<int:pk>/', views.FarmaciaUpdateView.as_view(), name='farmacia_update'),

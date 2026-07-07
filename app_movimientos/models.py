@@ -1,3 +1,18 @@
+"""
+Módulo de Modelos de Datos (ORM Django) - Logística y Despacho de Farmacias.
+
+Este módulo define la estructura de la base de datos y la lógica de negocio de las entidades
+principales del sistema: Farmacias, Motoristas, Motos, Turnos Operativos y Movimientos (despachos).
+
+Buenas prácticas aplicadas:
+- Normalización de base de datos hasta la 3ª Forma Normal (evita redundancia de datos).
+- Uso de tablas transaccionales intermedias (AsignacionTurno) en lugar de acoplamiento directo.
+- Validaciones a nivel de modelo mediante el método clean() para mantener la integridad de las reglas de negocio.
+- Uso de on_delete=PROTECT en relaciones críticas para prevenir el borrado accidental de registros con historial operativo.
+"""
+
+import re
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -5,32 +20,106 @@ from django.utils.crypto import get_random_string
 
 
 def generar_codigo_movimiento():
+    """
+    Genera un código alfanumérico único y aleatorio para identificar un movimiento de despacho.
+
+    Returns:
+        str: Código en formato 'MOV-XXXXXXXX' (ej. MOV-4829AFE1).
+    """
     return f"MOV-{get_random_string(8).upper()}"
 
 
-class Operadora(models.Model):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='operadora',
-        verbose_name="Usuario de Sistema",
-    )
-    telefono = models.CharField(
-        max_length=20, blank=True, null=True, verbose_name="Teléfono de Contacto"
-    )
-    turno = models.CharField(
-        max_length=50, blank=True, null=True, verbose_name="Turno Habitual"
-    )
+def limpiar_rut(rut):
+    """
+    Normaliza una cadena que representa un RUT chileno eliminando puntos, guiones y espacios en blanco.
 
-    class Meta:
-        verbose_name = "Operadora"
-        verbose_name_plural = "Operadoras"
+    Args:
+        rut (str): RUT en cualquier formato (ej. ' 12.345.678-k ').
 
-    def __str__(self):
-        return f"{self.user.get_full_name() or self.user.username} (Operadora)"
+    Returns:
+        str: RUT limpio y en mayúsculas (ej. '12345678K').
+    """
+    return (rut or '').strip().upper().replace('.', '').replace('-', '')
 
+
+def calcular_digito_verificador_rut(cuerpo):
+    """
+    Calcula el Dígito Verificador (DV) de un RUT chileno utilizando el algoritmo de Módulo 11.
+
+    Args:
+        cuerpo (str): Parte numérica del RUT sin dígito verificador.
+
+    Returns:
+        str: Dígito verificador calculado ('0'-'9' o 'K').
+    """
+    suma = 0
+    multiplicador = 2
+    for digito in reversed(cuerpo):
+        suma += int(digito) * multiplicador
+        multiplicador = 2 if multiplicador == 7 else multiplicador + 1
+
+    resultado = 11 - (suma % 11)
+    if resultado == 11:
+        return '0'
+    if resultado == 10:
+        return 'K'
+    return str(resultado)
+
+
+def rut_chileno_valido(rut):
+    """
+    Valida integralmente si un RUT chileno es sintáctico y matemáticamente correcto.
+
+    Verifica formato admitido (dígitos, puntos, guión y K), longitud mínima, cuerpo numérico,
+    que no sea cero y que el dígito verificador coincida con el cálculo de Módulo 11.
+
+    Args:
+        rut (str): RUT a evaluar.
+
+    Returns:
+        bool: True si el RUT es válido, False en caso contrario.
+    """
+    rut_texto = (rut or '').strip().upper()
+    if not rut_texto or not re.fullmatch(r'[\d.\-K]+', rut_texto):
+        return False
+
+    rut_limpio = limpiar_rut(rut_texto)
+    if len(rut_limpio) < 2:
+        return False
+
+    cuerpo = rut_limpio[:-1]
+    digito_verificador = rut_limpio[-1]
+    if not cuerpo.isdigit() or digito_verificador not in '0123456789K':
+        return False
+    if int(cuerpo) == 0:
+        return False
+
+    return calcular_digito_verificador_rut(cuerpo) == digito_verificador
+
+
+def formatear_rut(rut):
+    """
+    Aplica el formato estándar chileno con puntos y guión a una cadena de RUT válido.
+
+    Args:
+        rut (str): RUT en cualquier formato.
+
+    Returns:
+        str: RUT formateado como 'XX.XXX.XXX-Y'.
+    """
+    rut_limpio = limpiar_rut(rut)
+    cuerpo = str(int(rut_limpio[:-1]))
+    digito_verificador = rut_limpio[-1]
+    cuerpo_formateado = f"{int(cuerpo):,}".replace(',', '.')
+    return f"{cuerpo_formateado}-{digito_verificador}"
 
 class Farmacia(models.Model):
+    """
+    Entidad que representa un local físico o sucursal de farmacia.
+
+    Almacena los datos de contacto, ubicación administrativa (Región, Provincia, Comuna)
+    y actúa como punto de origen o destino para los despachos y turnos operativos.
+    """
     REGION_CHOICES = [
         ('ARICA_PARINACOTA', 'Región de Arica y Parinacota'),
         ('TARAPACA', 'Región de Tarapacá'),
@@ -73,6 +162,13 @@ class Farmacia(models.Model):
 
 
 class Motorista(models.Model):
+    """
+    Entidad que representa a un conductor o repartidor (motorista) de la flota.
+
+    Incluye control de estado (Activo/Inactivo), datos personales y ubicación de residencia.
+    Aplica validación obligatoria de RUT chileno en su método clean() para mantener
+    la integridad y unicidad del personal.
+    """
     ESTADO_CHOICES = [
         ('ACTIVO', 'Activo'),
         ('INACTIVO', 'Inactivo'),
@@ -99,8 +195,23 @@ class Motorista(models.Model):
         ubicacion = self.comuna or self.get_region_display() or "Ubicación pendiente"
         return f"{self.rut} - {self.nombre_completo} ({ubicacion})"
 
+    def clean(self):
+        super().clean()
+        if self.rut and not rut_chileno_valido(self.rut):
+            raise ValidationError({
+                'rut': 'Ingrese un RUT chileno válido.',
+            })
+        if self.rut:
+            self.rut = formatear_rut(self.rut)
+
 
 class UsuarioSistema(models.Model):
+    """
+    Entidad que representa a los usuarios administrativos del sistema de logística.
+
+    Permite clasificar al personal según roles jerárquicos (Admin, Gerente, Supervisor, etc.)
+    para control de acceso, auditoría y validación/anulación de pedidos.
+    """
     ROL_CHOICES = [
         ('ADMIN', 'Admin'),
         ('GERENTE', 'Gerente'),
@@ -127,6 +238,11 @@ class UsuarioSistema(models.Model):
 
 
 class MarcaMoto(models.Model):
+    """
+    Catálogo de marcas de motocicletas (ej. Honda, Yamaha, Suzuki).
+
+    Sirve para normalizar y estructurar la flota de vehículos sin strings arbitrarios.
+    """
     nombre = models.CharField(max_length=80, unique=True, verbose_name="Marca")
 
     class Meta:
@@ -139,6 +255,12 @@ class MarcaMoto(models.Model):
 
 
 class ModeloMoto(models.Model):
+    """
+    Catálogo de modelos específicos de motocicletas asociados a una Marca.
+
+    Implementa una restricción de unicidad (UniqueConstraint) para evitar duplicar
+    el mismo nombre de modelo dentro de la misma marca.
+    """
     marca = models.ForeignKey(
         MarcaMoto,
         on_delete=models.CASCADE,
@@ -163,6 +285,12 @@ class ModeloMoto(models.Model):
 
 
 class Moto(models.Model):
+    """
+    Entidad que representa una unidad física dentro de la flota de motocicletas.
+
+    Identificada unívocamente por su patente. Contiene su estado operativo (Disponible
+    o En Mantención). Su método clean() garantiza que el modelo pertenezca a la marca seleccionada.
+    """
     ESTADO_CHOICES = [
         ('DISPONIBLE', 'Disponible'),
         ('MANTENCION', 'En Mantención'),
@@ -200,6 +328,12 @@ class Moto(models.Model):
 
 
 class AsignacionMotorista(models.Model):
+    """
+    Entidad que registra la vinculación base actual entre un Motorista y una Farmacia.
+
+    Al ser OneToOneField con Motorista, garantiza que un motorista solo tenga una farmacia base
+    asignada a la vez, facilitando el filtrado en la creación de turnos y despachos directos.
+    """
     motorista = models.OneToOneField(
         Motorista,
         on_delete=models.CASCADE,

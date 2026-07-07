@@ -1,3 +1,16 @@
+"""
+Módulo de Formularios y Validación de Interfaz (Forms & FormMixins).
+
+Define los formularios de Django para la captura de datos y validación de negocio antes
+de persistir en la base de datos. Implementa menús desplegables en cascada (AJAX/dependientes)
+para la división territorial y filtrado dinámico de motoristas según su farmacia de asignación.
+
+Buenas prácticas aplicadas:
+- Principio DRY (Don't Repeat Yourself): Uso del mixin BootstrapStyleMixin para estilizar automáticamente todos los widgets con clases CSS sin acoplamiento manual en HTML.
+- Validación multicapa: Validaciones cruzadas en el método clean() (ej. coherencia de comunas con provincias y validación de turnos operativos).
+- Consultas optimizadas en inicializadores (__init__) para acotar las opciones mostradas al usuario según el contexto operativo.
+"""
+
 from django import forms
 from django.db.models import Q
 from .models import (
@@ -13,8 +26,13 @@ from .models import (
 )
 from .territorios import comunas_de, provincias_de, ubicacion_valida
 
-# Mixin personalizado para aplicar clases Bootstrap a todos los formularios sin librerías externas
 class BootstrapStyleMixin:
+    """
+    Mixin arquitectónico para inyectar estilos de Bootstrap 5 en los widgets de Django.
+
+    recorre dinámicamente los campos del formulario durante la instanciación y asigna 'form-control'
+    o 'form-check-input', permitiendo un mantenimiento limpio y evitando dependencias pesadas como django-widget-tweaks.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
@@ -24,6 +42,13 @@ class BootstrapStyleMixin:
                 field.widget.attrs['class'] = 'form-control'
 
 class FarmaciaForm(BootstrapStyleMixin, forms.ModelForm):
+    """
+    Formulario para la gestión de sucursales de Farmacia.
+
+    Implementa lógica de menús desplegables dependientes para Región → Provincia → Comuna.
+    Al inicializarse, carga las provincias y comunas correspondientes a la región seleccionada
+    en los datos enviados (POST) o en la instancia existente (al editar).
+    """
     provincia = forms.ChoiceField(
         choices=[('', 'Seleccione una región primero')],
         label='Provincia',
@@ -73,6 +98,12 @@ class FarmaciaForm(BootstrapStyleMixin, forms.ModelForm):
         ]
 
 class MotoristaForm(BootstrapStyleMixin, forms.ModelForm):
+    """
+    Formulario para el registro y modificación de Motoristas.
+
+    Al igual que FarmaciaForm, gestiona dropdowns dependientes de ubicación territorial
+    y proporciona textos de ayuda para guiar el ingreso correcto del RUT chileno.
+    """
     provincia = forms.ChoiceField(
         choices=[('', 'Seleccione una región primero')],
         label='Provincia',
@@ -120,13 +151,25 @@ class MotoristaForm(BootstrapStyleMixin, forms.ModelForm):
             'provincia',
             'comuna',
         ]
+        help_texts = {
+            'rut': 'Ingresa el RUT con dígito verificador. Ejemplo: 12.345.678-5 o 12345678-5.',
+        }
 
 class UsuarioSistemaForm(BootstrapStyleMixin, forms.ModelForm):
+    """
+    Formulario para la administración de usuarios del sistema y asignación de roles.
+    """
     class Meta:
         model = UsuarioSistema
         fields = ['nombre_completo', 'correo', 'telefono', 'rol', 'activo']
 
 class MotoForm(BootstrapStyleMixin, forms.ModelForm):
+    """
+    Formulario para la gestión del inventario de Motocicletas.
+
+    Filtra dinámicamente el campo 'modelo' para que únicamente muestre los modelos
+    pertenecientes a la 'marca' seleccionada, previniendo incoherencias vehiculares.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['marca'].queryset = MarcaMoto.objects.order_by('nombre')
@@ -150,6 +193,12 @@ class MotoForm(BootstrapStyleMixin, forms.ModelForm):
 
 
 class AsignacionMotoristaForm(BootstrapStyleMixin, forms.ModelForm):
+    """
+    Formulario para vincular un Motorista a una Farmacia base.
+
+    En la creación (cuando no hay instancia previa), filtra el queryset para mostrar
+    exclusivamente a los motoristas que no tienen una farmacia base asignada actualmente.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         motoristas = Motorista.objects.order_by('nombre_completo')
@@ -170,6 +219,9 @@ class AsignacionMotoristaForm(BootstrapStyleMixin, forms.ModelForm):
 
 
 class AsignacionTurnoForm(BootstrapStyleMixin, forms.ModelForm):
+    """
+    Formulario transaccional para la creación de Turnos Operativos diarios.
+    """
     class Meta:
         model = AsignacionTurno
         fields = '__all__'
@@ -179,6 +231,14 @@ class AsignacionTurnoForm(BootstrapStyleMixin, forms.ModelForm):
         }
 
 class MovimientoForm(BootstrapStyleMixin, forms.ModelForm):
+    """
+    Formulario principal para el registro y modificación de Despachos (Movimientos).
+
+    Controla reglas complejas:
+    - Oculta o muestra la 'farmacia_destino' dependiendo de si es un TRASLADO entre locales.
+    - Filtra el listado de motoristas seleccionables para mostrar únicamente a aquellos
+      que están activos y asignados a la 'farmacia_origen'.
+    """
     def __init__(self, *args, tipo_movimiento=None, **kwargs):
         super().__init__(*args, **kwargs)
         if tipo_movimiento:
@@ -260,6 +320,10 @@ class MovimientoForm(BootstrapStyleMixin, forms.ModelForm):
 
 
 class MovimientoTipoForm(MovimientoForm):
+    """
+    Subclase de MovimientoForm adaptada para la creación rápida de despachos según su tipo.
+    Oculta campos de control interno para simplificar la vista del operador.
+    """
     class Meta:
         model = Movimiento
         fields = [
@@ -284,6 +348,10 @@ class MovimientoTipoForm(MovimientoForm):
 
 
 class AnularMovimientoForm(BootstrapStyleMixin, forms.Form):
+    """
+    Formulario independiente para la anulación justificada de un despacho.
+    Exige un motivo con longitud mínima para asegurar la trazabilidad en auditorías.
+    """
     motivo_anulacion = forms.CharField(
         label='Motivo de anulación',
         widget=forms.Textarea(attrs={'rows': 4}),

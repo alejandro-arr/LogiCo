@@ -104,6 +104,50 @@ class FarmaciaMotoristaTests(TestCase):
         self.assertEqual(motorista.comuna, 'Providencia')
         self.assertNotIn('farmacia', form.fields)
 
+    def test_motorista_form_rechaza_rut_invalido(self):
+        form = MotoristaForm(data={
+            'rut': '12.345.678-9',
+            'nombre_completo': 'Rut Inválido',
+            'telefono': '912345678',
+            'estado': 'ACTIVO',
+            'region': 'METROPOLITANA',
+            'provincia': 'Santiago',
+            'comuna': 'Providencia',
+        })
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('rut', form.errors)
+
+    def test_motorista_form_normaliza_rut_valido_sin_formato(self):
+        form = MotoristaForm(data={
+            'rut': '12345678-5',
+            'nombre_completo': 'Rut Válido',
+            'telefono': '912345678',
+            'estado': 'ACTIVO',
+            'region': 'METROPOLITANA',
+            'provincia': 'Santiago',
+            'comuna': 'Providencia',
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+        motorista = form.save()
+        self.assertEqual(motorista.rut, '12.345.678-5')
+
+    def test_motorista_form_acepta_digito_k_minuscula(self):
+        form = MotoristaForm(data={
+            'rut': '1000005-k',
+            'nombre_completo': 'Rut con K',
+            'telefono': '912345678',
+            'estado': 'ACTIVO',
+            'region': 'METROPOLITANA',
+            'provincia': 'Santiago',
+            'comuna': 'Providencia',
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+        motorista = form.save()
+        self.assertEqual(motorista.rut, '1.000.005-K')
+
     def test_motorista_form_rechaza_ubicacion_invalida(self):
         form = MotoristaForm(data={
             'rut': '12.345.678-5',
